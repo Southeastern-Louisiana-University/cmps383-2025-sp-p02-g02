@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.SpaServices;
 using Selu383.SP25.P02.Api.Features.Roles;
 using Selu383.SP25.P02.Api.Features.Users;
 
+
 namespace Selu383.SP25.P02.Api
 {
     public class Program
@@ -59,6 +60,12 @@ namespace Selu383.SP25.P02.Api
                 var db = scope.ServiceProvider.GetRequiredService<DataContext>();
                 await db.Database.MigrateAsync();
                 SeedTheaters.Initialize(scope.ServiceProvider);
+
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+                await SeedRoles.Initialize(roleManager); // Create roles first
+                await SeedUsers.Initialize(userManager); // Then create users and assign roles
+
             }
 
             // Configure the HTTP request pipeline.
@@ -83,10 +90,7 @@ namespace Selu383.SP25.P02.Api
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.MapControllers();
 
             if (!app.Environment.IsDevelopment())
             {
