@@ -38,8 +38,18 @@ namespace Selu383.SP25.P02.Api
             });
         
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+            // Add OpenAPI (Swagger)
             builder.Services.AddOpenApi();
+
+            // Add CORS policy to allow requests from frontend
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    policy => policy.AllowAnyOrigin()
+                                    .AllowAnyMethod()
+                                    .AllowAnyHeader());
+            });
 
             var app = builder.Build();
 
@@ -54,15 +64,32 @@ namespace Selu383.SP25.P02.Api
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
+                app.UseDeveloperExceptionPage();
+                app.UseSpa(x => x.UseProxyToSpaDevelopmentServer("http://localhost:5173"));
+            }
+            else
+            {
+                app.UseExceptionHandler("/Error");
+                app.UseHsts();
             }
 
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
+            app.UseStaticFiles(); // Serve static files (React build)
+            app.UseRouting();
+            app.UseCors("AllowAll");
             app.UseAuthorization();
 
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
 
-            app.MapControllers();
+            if (!app.Environment.IsDevelopment())
+            {
+                app.MapFallbackToFile("/index.html"); // Serve React app in production
+            }
 
             app.Run();
         }
