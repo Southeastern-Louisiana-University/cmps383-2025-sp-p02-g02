@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP25.P02.Api.Data;
+using Microsoft.AspNetCore.SpaServices;
 using Selu383.SP25.P02.Api.Features.Roles;
 using Selu383.SP25.P02.Api.Features.Users;
 
@@ -79,6 +80,7 @@ namespace Selu383.SP25.P02.Api
             app.UseStaticFiles(); // Serve static files (React build)
             app.UseRouting();
             app.UseCors("AllowAll");
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
