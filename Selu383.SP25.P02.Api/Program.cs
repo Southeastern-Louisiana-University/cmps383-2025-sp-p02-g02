@@ -70,10 +70,11 @@ namespace Selu383.SP25.P02.Api
                 await SeedRoles.Initialize(roleManager); 
 
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+                await SeedUsers.Initialize(userManager);
 
                 if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_TEST") == "true")
                 {
-                    await SeedUsers.Initialize(userManager);
+                    
                     SeedTheaters.Initialize(scope.ServiceProvider);
                 }
 
@@ -86,7 +87,7 @@ namespace Selu383.SP25.P02.Api
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "CMPs-383_P02_G02");
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "CMPS-383_P02_G02");
                     c.RoutePrefix = "swagger"; 
                 });
 
@@ -102,7 +103,7 @@ namespace Selu383.SP25.P02.Api
 
             app.UseHttpsRedirection();
 
-            app.UseAuthentication();
+            
             app.UseStaticFiles(); // Serve static files (React build)
             app.UseRouting();
             app.UseCors("AllowAll");
@@ -115,6 +116,13 @@ namespace Selu383.SP25.P02.Api
             {
                 app.MapFallbackToFile("/index.html"); // Serve React app in production
             }
+
+            app.Use(async (context, next) =>
+            {
+                Console.WriteLine($"Incoming Request: {context.Request.Method} {context.Request.Path}");
+                await next();
+            });
+
 
             app.Run();
         }

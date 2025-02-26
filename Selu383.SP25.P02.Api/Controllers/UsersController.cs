@@ -20,8 +20,7 @@ namespace Selu383.SP25.P02.Api.Controllers
             this.roleManager = roleManager;
         }
 
-        [Route("api/users")]
-        [HttpPost]
+        [HttpPost("create")]
         [Authorize]
         public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto createUserDto)
         {
