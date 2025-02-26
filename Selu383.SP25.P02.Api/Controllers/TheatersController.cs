@@ -143,12 +143,18 @@ namespace Selu383.SP25.P02.Api.Controllers
 
         [HttpDelete]
         [Route("{id}")]
+        [Authorize]
         public ActionResult DeleteTheater(int id)
         {
             var theater = theaters.FirstOrDefault(x => x.Id == id);
             if (theater == null)
             {
                 return NotFound();
+            }
+
+            if (!User.IsInRole("Admin")) //Admins can always use this
+            {
+                return Forbid("Only admins can delete a theater."); // 403 Forbidden
             }
 
             theaters.Remove(theater);
