@@ -82,6 +82,7 @@ namespace Selu383.SP25.P02.Api.Controllers
 
         [HttpPut]
         [Route("{id}")]
+        [Authorize]
         public ActionResult<TheaterDto> UpdateTheater(int id, TheaterDto dto)
         {
             if (IsInvalid(dto))
@@ -95,9 +96,43 @@ namespace Selu383.SP25.P02.Api.Controllers
                 return NotFound();
             }
 
+            if (!int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId))
+            {
+                return Unauthorized(); // 401 Unauthorized if user ID cannot be parsed
+            }
+
+            bool isAdmin = User.IsInRole("Admin");
+            bool isManager = theater.Manager?.Id == userId;
+
+            if (!isAdmin && !isManager)
+            {
+                return Forbid("Only admins or the manager can update this theater."); 
+            }
+
+            if (!isAdmin && dto.ManagerId.HasValue && dto.ManagerId != theater.Manager?.Id)
+            {
+                return Forbid("Only admins can change the ManagerId.");
+            }
+
+            User? newManager = theater.Manager;
+            if (isAdmin && dto.ManagerId.HasValue && dto.ManagerId != theater.Manager?.Id)
+            {
+                newManager = dataContext.Set<User>().Find(dto.ManagerId.Value);
+                if (newManager == null)
+                {
+                    return BadRequest();
+                }
+            }
+
             theater.Name = dto.Name;
             theater.Address = dto.Address;
             theater.SeatCount = dto.SeatCount;
+
+            // Only admins can change the manager
+            if (isAdmin) 
+            {
+                theater.Manager = newManager;
+            }
 
             dataContext.SaveChanges();
 
