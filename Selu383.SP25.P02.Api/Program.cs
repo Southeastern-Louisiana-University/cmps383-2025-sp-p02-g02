@@ -6,7 +6,8 @@ using Selu383.SP25.P02.Api.Data;
 using Microsoft.AspNetCore.SpaServices;
 using Selu383.SP25.P02.Api.Features.Roles;
 using Selu383.SP25.P02.Api.Features.Users;
-
+using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 namespace Selu383.SP25.P02.Api
 {
@@ -41,8 +42,13 @@ namespace Selu383.SP25.P02.Api
         
             builder.Services.AddControllers();
 
-            // Add OpenAPI (Swagger)
-            builder.Services.AddOpenApi();
+            // Register Swagger services
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "CMPs-383_P02_G02", Version = "v1" });
+            });
+
 
             // Add CORS policy to allow requests from frontend
             builder.Services.AddCors(options =>
@@ -71,8 +77,15 @@ namespace Selu383.SP25.P02.Api
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "CMPs-383_P02_G02");
+                    c.RoutePrefix = "swagger"; 
+                });
+
                 app.UseDeveloperExceptionPage();
+
                 app.UseSpa(x => x.UseProxyToSpaDevelopmentServer("http://localhost:5173"));
             }
             else
