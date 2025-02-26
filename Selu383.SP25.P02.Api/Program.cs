@@ -29,10 +29,10 @@ namespace Selu383.SP25.P02.Api
             builder.Services.ConfigureApplicationCookie(options => {
                 {
                     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
-                    options.Cookie.Name = "YourAppCookieName";
+                    options.Cookie.Name = "AuthenticationCookie";
                     options.Cookie.HttpOnly = true;
                     options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-                    options.LoginPath = "/Identity/Account/Login";
+                    options.LoginPath = "/api/authentication/login";
                     // ReturnUrlParameter requires 
                     //using Microsoft.AspNetCore.Authentication.Cookies;
                     options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
@@ -64,14 +64,20 @@ namespace Selu383.SP25.P02.Api
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<DataContext>();
-                await db.Database.MigrateAsync();
-                SeedTheaters.Initialize(scope.ServiceProvider);
+                await db.Database.MigrateAsync(); // Apply migrations
+
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+                await SeedRoles.Initialize(roleManager); 
 
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
-                await SeedRoles.Initialize(roleManager); // Create roles first
-                await SeedUsers.Initialize(userManager); // Then create users and assign roles
 
+                if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_TEST") == "true")
+                {
+                    await SeedUsers.Initialize(userManager);
+                    SeedTheaters.Initialize(scope.ServiceProvider);
+                }
+
+                
             }
 
             // Configure the HTTP request pipeline.
