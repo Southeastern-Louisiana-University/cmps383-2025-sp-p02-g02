@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Theaters;
+using Selu383.SP25.P02.Api.Features.Users;
 
 namespace Selu383.SP25.P02.Api.Controllers
 {
@@ -38,6 +40,7 @@ namespace Selu383.SP25.P02.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize] //401 if user not authenticated
         public ActionResult<TheaterDto> CreateTheater(TheaterDto dto)
         {
             if (IsInvalid(dto))
@@ -45,11 +48,28 @@ namespace Selu383.SP25.P02.Api.Controllers
                 return BadRequest();
             }
 
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid(); // Returns 403 if user is not an admin
+            }
+
+            //check if the user exists first and if not, return bad request
+            User? manager = null;
+            if (dto.ManagerId.HasValue)
+            {
+                manager = dataContext.Set<User>().Find(dto.ManagerId.Value);
+                if (manager == null)
+                {
+                    return BadRequest("Invalid ManagerId: User not found.");
+                }
+            }
+
             var theater = new Theater
             {
                 Name = dto.Name,
                 Address = dto.Address,
                 SeatCount = dto.SeatCount,
+                Manager = manager
             };
             theaters.Add(theater);
 
@@ -57,7 +77,7 @@ namespace Selu383.SP25.P02.Api.Controllers
 
             dto.Id = theater.Id;
 
-            return CreatedAtAction(nameof(GetTheaterById), new { id = dto.Id }, dto);
+            return CreatedAtAction(nameof(GetTheaterById), new { id = dto.Id }, dto); 
         }
 
         [HttpPut]
