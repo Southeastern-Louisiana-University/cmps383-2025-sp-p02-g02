@@ -21,18 +21,7 @@ namespace Selu383.SP25.P02.Api.Controllers
             _theaters = context.Set<Theater>();
             _users = context.Set<User>();
         }
-        [HttpGet]
-        public IQueryable<TheaterDto> GetAllTheaters()
-        {
-            return _theaters.Select(x => new TheaterDto
-            {
-                Id = x.Id,
-                Name = x.Name,
-                Address = x.Address,
-                SeatCount = x.SeatCount,
-                ManagerId = x.Manager == null ? null : x.Manager.Id
-            });
-        }
+       
         [HttpGet("{id}")]
         public ActionResult<TheaterDto> GetTheaterById(int id)
         {
@@ -49,6 +38,37 @@ namespace Selu383.SP25.P02.Api.Controllers
                 return NotFound();
             }
             return Ok(dto);
+        }
+        
+        [HttpGet]
+        public IQueryable<TheaterDto> GetAllTheaters()
+        {
+            return _theaters.Select(x => new TheaterDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Address = x.Address,
+                SeatCount = x.SeatCount,
+                ManagerId = x.Manager == null ? null : x.Manager.Id
+            });
+        }
+        
+        [HttpDelete("{id}")]
+        [Authorize]
+        public ActionResult DeleteTheater(int id)
+        {
+            var theater = _theaters.FirstOrDefault(x => x.Id == id);
+            if (theater == null)
+            {
+                return NotFound();
+            }
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+            _theaters.Remove(theater);
+            _context.SaveChanges();
+            return Ok();
         }
         [HttpPost]
         [Authorize]
@@ -149,23 +169,7 @@ namespace Selu383.SP25.P02.Api.Controllers
             };
             return Ok(updatedDto);
         }
-        [HttpDelete("{id}")]
-        [Authorize]
-        public ActionResult DeleteTheater(int id)
-        {
-            var theater = _theaters.FirstOrDefault(x => x.Id == id);
-            if (theater == null)
-            {
-                return NotFound();
-            }
-            if (!User.IsInRole("Admin"))
-            {
-                return Forbid();
-            }
-            _theaters.Remove(theater);
-            _context.SaveChanges();
-            return Ok();
-        }
+        
         private static bool IsInvalid(TheaterDto dto)
         {
             return string.IsNullOrWhiteSpace(dto.Name) || dto.Name.Length > 120 || string.IsNullOrWhiteSpace(dto.Address) || dto.SeatCount <= 0;

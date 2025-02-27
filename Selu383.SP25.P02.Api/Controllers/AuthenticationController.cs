@@ -9,6 +9,8 @@ using System.Security.Claims;
 
 namespace Selu383.SP25.P02.Api.Controllers
 {
+    
+    
     [Route("api/authentication")]
     [ApiController]
     public class AuthenticationController : ControllerBase
@@ -22,7 +24,18 @@ namespace Selu383.SP25.P02.Api.Controllers
             this.userManager = userManager;
             this.roleManager = roleManager;
         }
-
+        
+        
+        
+        [HttpPost("logout")]
+        [Authorize] 
+        public async Task<IActionResult> Logout()
+        {
+            await signInManager.SignOutAsync();
+            return Ok(); 
+        }
+        
+        
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login([FromBody] LoginDto loginDto)
         {
@@ -47,6 +60,8 @@ namespace Selu383.SP25.P02.Api.Controllers
                 Roles = roles.ToArray()
             });
         }
+
+       
 
         [HttpGet("me")] // current user can get their info
         [Authorize] 
@@ -74,13 +89,7 @@ namespace Selu383.SP25.P02.Api.Controllers
             });
         }
 
-        [HttpPost("logout")]
-        [Authorize] 
-        public async Task<IActionResult> Logout()
-        {
-            await signInManager.SignOutAsync();
-            return Ok(); 
-        }
+        
 
 
     }
