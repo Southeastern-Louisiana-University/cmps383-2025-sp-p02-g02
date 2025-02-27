@@ -20,7 +20,7 @@ namespace Selu383.SP25.P02.Api.Controllers
             this.roleManager = roleManager;
         }
 
-        [HttpPost("create")]
+        [HttpPost]
         [Authorize]
         public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto createUserDto)
         {
@@ -74,6 +74,8 @@ namespace Selu383.SP25.P02.Api.Controllers
                 Roles = createUserDto.Roles
             });
         }
+
+//        [HttpGet]
     }
 }
 

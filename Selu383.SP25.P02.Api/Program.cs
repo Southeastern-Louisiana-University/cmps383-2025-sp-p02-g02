@@ -37,6 +37,17 @@ namespace Selu383.SP25.P02.Api
                     //using Microsoft.AspNetCore.Authentication.Cookies;
                     options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
                     options.SlidingExpiration = true;
+                    options.Events.OnRedirectToLogin = context =>
+                    {
+                        context.Response.StatusCode = 401;
+                        return Task.CompletedTask;
+                    };
+
+                    options.Events.OnRedirectToAccessDenied = context =>
+                    {
+                        context.Response.StatusCode = 403;
+                        return Task.CompletedTask;
+                    };
                 }
             });
         
@@ -46,7 +57,7 @@ namespace Selu383.SP25.P02.Api
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "CMPs-383_P02_G02", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "CMPS-383_P02_G02", Version = "v1" });
             });
 
 
