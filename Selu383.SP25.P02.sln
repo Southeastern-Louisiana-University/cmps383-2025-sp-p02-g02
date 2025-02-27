@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Selu383.SP25.P02.Api", "Sel
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Selu383.SP25.P02.Test", "Selu383.SP25.P02.Test\Selu383.SP25.P02.Test.csproj", "{1311B27E-03B0-496C-86D6-3F3A207F99C6}"
 EndProject
-Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "Selu383.SP25.P02.Web", "Selu383.SP25.P02.Web\Selu383.SP25.P02.Web.esproj", "{26F6FEDC-BBEE-46C6-9856-B11E3423A4B8}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,12 +21,6 @@ Global
 		{1311B27E-03B0-496C-86D6-3F3A207F99C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1311B27E-03B0-496C-86D6-3F3A207F99C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1311B27E-03B0-496C-86D6-3F3A207F99C6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{26F6FEDC-BBEE-46C6-9856-B11E3423A4B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{26F6FEDC-BBEE-46C6-9856-B11E3423A4B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{26F6FEDC-BBEE-46C6-9856-B11E3423A4B8}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{26F6FEDC-BBEE-46C6-9856-B11E3423A4B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{26F6FEDC-BBEE-46C6-9856-B11E3423A4B8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{26F6FEDC-BBEE-46C6-9856-B11E3423A4B8}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

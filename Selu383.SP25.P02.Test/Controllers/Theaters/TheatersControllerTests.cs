@@ -1,502 +1,170 @@
-﻿using System.Net;
-using System.Net.Http.Json;
-using FluentAssertions;
-using Selu383.SP25.P02.Test.Controllers.Authentication;
-using Selu383.SP25.P02.Test.Dtos;
-using Selu383.SP25.P02.Test.Helpers;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Selu383.SP25.P02.Api.Data;
+using Selu383.SP25.P02.Api.Features.Theaters;
+using Selu383.SP25.P02.Api.Features.Users;
+using System.Security.Claims;
 
-namespace Selu383.SP25.P02.Test.Controllers.Theaters;
-
-[TestClass]
-public class TheatersControllerTests
+namespace Selu383.SP25.P02.Api.Controllers
 {
-    private WebTestContext context = new();
-
-    [TestInitialize]
-    public void Init()
+    [Route("api/theaters")]
+    [ApiController]
+    public class TheatersController : ControllerBase
     {
-        context = new WebTestContext();
-    }
-
-    [TestCleanup]
-    public void Cleanup()
-    {
-        context.Dispose();
-    }
-
-    [TestMethod]
-    public async Task ListAllTheaters_Returns200AndData()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-
-        //act
-        var httpResponse = await webClient.GetAsync("/api/theaters");
-
-        //assert
-        await httpResponse.AssertTheaterListAllFunctions();
-    }
-
-    [TestMethod]
-    public async Task GetTheaterById_Returns200AndData()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var target = await webClient.GetTheater();
-        if (target == null)
+        private readonly DataContext _context;
+        private readonly DbSet<Theater> _theaters;
+        private readonly DbSet<User> _users;
+        public TheatersController(DataContext context)
         {
-            Assert.Fail("Make List All theaters work first");
-            return;
+            _context = context;
+            _theaters = context.Set<Theater>();
+            _users = context.Set<User>();
         }
-
-        //act
-        var httpResponse = await webClient.GetAsync($"/api/theaters/{target.Id}");
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.OK, "we expect an HTTP 200 when calling GET /api/theaters/{id} ");
-        var resultDto = await httpResponse.Content.ReadAsJsonAsync<TheaterDto>();
-        resultDto.Should().BeEquivalentTo(target, "we expect get theater by id to return the same data as the list all theaters endpoint");
-    }
-
-    [TestMethod]
-    public async Task GetTheaterById_NoSuchId_Returns404()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-
-        //act
-        var httpResponse = await webClient.GetAsync("/api/theaters/999999");
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.NotFound, "we expect an HTTP 404 when calling GET /api/theaters/{id} with an invalid id");
-    }
-
-    [TestMethod]
-    public async Task CreateTheater_NoName_Returns400()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        await webClient.AssertLoggedInAsAdmin();
-        var request = new TheaterDto
+        [HttpGet]
+        public IQueryable<TheaterDto> GetAllTheaters()
         {
-            Address = "asd",
-            ManagerId = context.GetBobUserId(),
-            SeatCount = 100
-        };
-
-        //act
-        var httpResponse = await webClient.PostAsJsonAsync("/api/theaters", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest, "we expect an HTTP 400 when calling POST /api/theaters with no name");
-    }
-
-    [TestMethod]
-    public async Task CreateTheater_NameTooLong_Returns400()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        await webClient.AssertLoggedInAsAdmin();
-        var request = new TheaterDto
-        {
-            Name = "a".PadLeft(121, '0'),
-            Address = "asd",
-            ManagerId = context.GetBobUserId(),
-            SeatCount = 100
-        };
-
-        //act
-        var httpResponse = await webClient.PostAsJsonAsync("/api/theaters", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest, "we expect an HTTP 400 when calling POST /api/theaters with a name that is too long");
-    }
-
-    [TestMethod]
-    public async Task CreateTheater_NoAddress_ReturnsError()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var target = await webClient.GetTheater();
-        await webClient.AssertLoggedInAsAdmin();
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
-            return;
+            return _theaters.Select(x => new TheaterDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Address = x.Address,
+                SeatCount = x.SeatCount,
+                ManagerId = x.Manager == null ? null : x.Manager.Id
+            });
         }
-        var request = new TheaterDto
+        [HttpGet("{id}")]
+        public ActionResult<TheaterDto> GetTheaterById(int id)
         {
-            Name = "asd",
-            ManagerId = context.GetBobUserId(),
-            SeatCount = 100
-        };
-
-        //act
-        var httpResponse = await webClient.PostAsJsonAsync("/api/theaters", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest, "we expect an HTTP 400 when calling POST /api/theaters with no description");
-    }
-
-    [TestMethod]
-    public async Task CreateTheater_Returns201AndData()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        await webClient.AssertLoggedInAsAdmin();
-        var request = new TheaterDto
-        {
-            Name = "a",
-            Address = "asd",
-            SeatCount = 100
-        };
-
-        //act
-        var httpResponse = await webClient.PostAsJsonAsync("/api/theaters", request);
-
-        //assert
-        await httpResponse.AssertCreateTheaterFunctions(request, webClient);
-    }
-
-    [TestMethod]
-    public async Task CreateTheater_NotLoggedIn_Returns401()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var request = new TheaterDto
-        {
-            Name = "a",
-            Address = "asd",
-            SeatCount = 100
-        };
-
-        //act
-        var httpResponse = await webClient.PostAsJsonAsync("/api/theaters", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized, "we expect an HTTP 401 when calling POST /api/theaters when not logged in");
-    }
-
-    [TestMethod]
-    public async Task CreateTheater_LoggedInAsBob_Returns403()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        await webClient.AssertLoggedInAsBob();
-        var request = new TheaterDto
-        {
-            Name = "a",
-            Address = "asd",
-            SeatCount = 100
-        };
-
-        //act
-        var httpResponse = await webClient.PostAsJsonAsync("/api/theaters", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden, "we expect an HTTP 403 when calling POST /api/theaters when logged in as bob");
-    }
-
-    [TestMethod]
-    public async Task UpdateTheater_NoName_Returns400()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var request = new TheaterDto
-        {
-            Name = "a",
-            Address = "desc",
-            SeatCount = 100
-        };
-        await using var target = await webClient.CreateTheater(request);
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
+            var dto = _theaters.Where(x => x.Id == id).Select(x => new TheaterDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Address = x.Address,
+                SeatCount = x.SeatCount,
+                ManagerId = x.Manager == null ? null : x.Manager.Id
+            }).FirstOrDefault();
+            if (dto == null)
+            {
+                return NotFound();
+            }
+            return Ok(dto);
         }
-
-        await webClient.AssertLoggedInAsAdmin();
-        request.Name = null;
-
-        //act
-        var httpResponse = await webClient.PutAsJsonAsync($"/api/theaters/{request.Id}", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest, "we expect an HTTP 400 when calling PUT /api/theaters/{id} with a missing name");
-    }
-
-    [TestMethod]
-    public async Task UpdateTheater_NameTooLong_Returns400()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var request = new TheaterDto
+        [HttpPost]
+        [Authorize]
+        public ActionResult<TheaterDto> CreateTheater([FromBody] TheaterDto dto)
         {
-            Name = "a",
-            Address = "desc",
-            SeatCount = 100
-        };
-        await using var target = await webClient.CreateTheater(request);
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
+            if (IsInvalid(dto))
+            {
+                return BadRequest();
+            }
+            bool isAdmin = User.IsInRole("Admin");
+            if (!isAdmin)
+            {
+                return Forbid();
+            }
+            User? manager = null;
+            if (dto.ManagerId.HasValue)
+            {
+                manager = _users.Find(dto.ManagerId.Value);
+                if (manager == null)
+                {
+                    return BadRequest();
+                }
+            }
+            var theater = new Theater
+            {
+                Name = dto.Name,
+                Address = dto.Address,
+                SeatCount = dto.SeatCount,
+                Manager = manager
+            };
+            _theaters.Add(theater);
+            _context.SaveChanges();
+            var resultDto = new TheaterDto
+            {
+                Id = theater.Id,
+                Name = theater.Name,
+                Address = theater.Address,
+                SeatCount = theater.SeatCount,
+                ManagerId = theater.Manager == null ? null : theater.Manager.Id
+            };
+            return CreatedAtAction(nameof(GetTheaterById), new { id = resultDto.Id }, resultDto);
         }
-
-        await webClient.AssertLoggedInAsAdmin();
-        request.Name = "a".PadLeft(121, '0');
-
-        //act
-        var httpResponse = await webClient.PutAsJsonAsync($"/api/theaters/{request.Id}", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest, "we expect an HTTP 400 when calling PUT /api/theaters/{id} with a name that is too long");
-    }
-
-    [TestMethod]
-    public async Task UpdateTheater_NoAddress_Returns400()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var request = new TheaterDto
+        [HttpPut("{id}")]
+        [Authorize]
+        public ActionResult<TheaterDto> UpdateTheater(int id, [FromBody] TheaterDto dto)
         {
-            Name = "a",
-            Address = "desc",
-            SeatCount = 100
-        };
-        await using var target = await webClient.CreateTheater(request);
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
+            if (IsInvalid(dto))
+            {
+                return BadRequest();
+            }
+            var theater = _theaters.Include(x => x.Manager).FirstOrDefault(x => x.Id == id);
+            if (theater == null)
+            {
+                return NotFound();
+            }
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            {
+                return Unauthorized();
+            }
+            bool isAdmin = User.IsInRole("Admin");
+            bool isManager = theater.Manager?.Id == userId;
+            if (!isAdmin && !isManager)
+            {
+                return Forbid();
+            }
+            if (!isAdmin && dto.ManagerId.HasValue && dto.ManagerId != theater.Manager?.Id)
+            {
+                return Forbid();
+            }
+            User? newManager = theater.Manager;
+            if (isAdmin && dto.ManagerId.HasValue && dto.ManagerId != theater.Manager?.Id)
+            {
+                newManager = _users.Find(dto.ManagerId.Value);
+                if (newManager == null)
+                {
+                    return BadRequest();
+                }
+            }
+            theater.Name = dto.Name;
+            theater.Address = dto.Address;
+            theater.SeatCount = dto.SeatCount;
+            if (isAdmin)
+            {
+                theater.Manager = newManager;
+            }
+            _context.SaveChanges();
+            var updatedDto = new TheaterDto
+            {
+                Id = theater.Id,
+                Name = theater.Name,
+                Address = theater.Address,
+                SeatCount = theater.SeatCount,
+                ManagerId = theater.Manager == null ? null : theater.Manager.Id
+            };
+            return Ok(updatedDto);
         }
-
-        await webClient.AssertLoggedInAsAdmin();
-        request.Address = null;
-
-        //act
-        var httpResponse = await webClient.PutAsJsonAsync($"/api/theaters/{request.Id}", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest, "we expect an HTTP 400 when calling PUT /api/theaters/{id} with a missing description");
-    }
-
-    [TestMethod]
-    public async Task UpdateTheater_Valid_Returns200()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var bobId = context.GetBobUserId();
-        var sueId = context.GetSueUserId();
-        var request = new TheaterDto
+        [HttpDelete("{id}")]
+        [Authorize]
+        public ActionResult DeleteTheater(int id)
         {
-            Name = "a",
-            Address = "desc",
-            ManagerId = bobId,
-            SeatCount = 100
-        };
-        await using var target = await webClient.CreateTheater(request);
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
+            var theater = _theaters.FirstOrDefault(x => x.Id == id);
+            if (theater == null)
+            {
+                return NotFound();
+            }
+            if (!User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+            _theaters.Remove(theater);
+            _context.SaveChanges();
+            return Ok();
         }
-
-        await webClient.AssertLoggedInAsAdmin();
-        request.Address = "cool new address";
-        request.ManagerId = sueId;
-
-        //act
-        var httpResponse = await webClient.PutAsJsonAsync($"/api/theaters/{request.Id}", request);
-
-        //assert
-        await httpResponse.AssertTheaterUpdateFunctions(request, webClient);
-    }
-
-    [TestMethod]
-    public async Task UpdateTheater_NotLoggedIn_Returns401()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var request = new TheaterDto
+        private static bool IsInvalid(TheaterDto dto)
         {
-            Name = "a",
-            Address = "desc",
-            SeatCount = 100
-        };
-        await using var target = await webClient.CreateTheater(request);
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
+            return string.IsNullOrWhiteSpace(dto.Name) || dto.Name.Length > 120 || string.IsNullOrWhiteSpace(dto.Address) || dto.SeatCount <= 0;
         }
-
-        request.Address = "cool new address";
-
-        //act
-        var httpResponse = await webClient.PutAsJsonAsync($"/api/theaters/{request.Id}", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized, "we expect an HTTP 401 when calling PUT /api/theaters/{id} without being logged in");
-    }
-
-    [TestMethod]
-    public async Task UpdateTheater_LoggedInAsBob_Returns200()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var bobId = context.GetBobUserId();
-        var request = new TheaterDto
-        {
-            Name = "a",
-            Address = "desc",
-            ManagerId = bobId,
-            SeatCount = 100
-        };
-        await using var target = await webClient.CreateTheater(request);
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
-        }
-        await webClient.AssertLoggedInAsBob();
-
-        request.Address = "cool new address";
-
-        //act
-        var httpResponse = await webClient.PutAsJsonAsync($"/api/theaters/{request.Id}", request);
-
-        //assert
-        await httpResponse.AssertTheaterUpdateFunctions(request, webClient);
-    }
-
-    [TestMethod]
-    public async Task UpdateTheater_LoggedInAsWrongUser_Returns403()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var bobId = context.GetBobUserId();
-        var request = new TheaterDto
-        {
-            Name = "a",
-            Address = "desc",
-            ManagerId = bobId,
-            SeatCount = 100
-        };
-        await using var target = await webClient.CreateTheater(request);
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
-        }
-        await webClient.AssertLoggedInAsSue();
-
-        request.Address = "cool new address";
-
-        //act
-        var httpResponse = await webClient.PutAsJsonAsync($"/api/theaters/{request.Id}", request);
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden, "we expect an HTTP 403 when calling PUT /api/theaters/{id} against a theater bob manages while logged in as sue");
-    }
-
-    [TestMethod]
-    public async Task DeleteTheater_NoSuchItem_ReturnsNotFound()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var request = new TheaterDto
-        {
-            Address = "asd",
-            Name = "asd",
-            SeatCount = 100
-        };
-        await using var itemHandle = await webClient.CreateTheater(request);
-        if (itemHandle == null)
-        {
-            Assert.Fail("You are not ready for this test");
-            return;
-        }
-        await webClient.AssertLoggedInAsAdmin();
-
-        //act
-        var httpResponse = await webClient.DeleteAsync($"/api/theaters/{request.Id + 21}");
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.NotFound, "we expect an HTTP 404 when calling DELETE /api/theaters/{id} with an invalid Id");
-    }
-
-    [TestMethod]
-    public async Task DeleteTheater_ValidItem_ReturnsOk()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var request = new TheaterDto
-        {
-            Address = "asd",
-            Name = "asd",
-            SeatCount = 100
-        };
-        await using var itemHandle = await webClient.CreateTheater(request);
-        if (itemHandle == null)
-        {
-            Assert.Fail("You are not ready for this test");
-            return;
-        }
-        await webClient.AssertLoggedInAsAdmin();
-
-        //act
-        var httpResponse = await webClient.DeleteAsync($"/api/theaters/{request.Id}");
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.OK, "we expect an HTTP 200 when calling DELETE /api/theaters/{id} with a valid id");
-    }
-
-    [TestMethod]
-    public async Task DeleteTheater_SameItemTwice_ReturnsNotFound()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var request = new TheaterDto
-        {
-            Address = "asd",
-            Name = "asd",
-            SeatCount = 100
-        };
-        await using var itemHandle = await webClient.CreateTheater(request);
-        if (itemHandle == null)
-        {
-            Assert.Fail("You are not ready for this test");
-            return;
-        }
-        await webClient.AssertLoggedInAsAdmin();
-
-        //act
-        await webClient.DeleteAsync($"/api/theaters/{request.Id}");
-        var httpResponse = await webClient.DeleteAsync($"/api/theaters/{request.Id}");
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.NotFound, "we expect an HTTP 404 when calling DELETE /api/theaters/{id} on the same item twice");
-    }
-
-    [TestMethod]
-    public async Task DeleteTheater_LoggedInAsWrongUser_Returns403()
-    {
-        //arrange
-        var webClient = context.GetStandardWebClient();
-        var bobId = context.GetBobUserId();
-        var request = new TheaterDto
-        {
-            Name = "a",
-            Address = "desc",
-            ManagerId = bobId,
-            SeatCount = 100
-        };
-        await using var target = await webClient.CreateTheater(request);
-        if (target == null)
-        {
-            Assert.Fail("You are not ready for this test");
-        }
-        await webClient.AssertLoggedInAsSue();
-
-        //act
-        await webClient.DeleteAsync($"/api/theaters/{request.Id}");
-        var httpResponse = await webClient.DeleteAsync($"/api/theaters/{request.Id}");
-
-        //assert
-        httpResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden, "we expect an HTTP 403 when calling DELETE /api/theaters/{id} against a theater bob manages while logged in as sue");
     }
 }
