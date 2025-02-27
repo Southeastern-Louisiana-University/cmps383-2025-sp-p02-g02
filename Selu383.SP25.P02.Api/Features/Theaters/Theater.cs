@@ -10,7 +10,6 @@ namespace Selu383.SP25.P02.Api.Features.Theaters
         public required string Name { get; set; }
         public required string Address { get; set; }
         public required int SeatCount { get; set; }
-        public User? Manager { get; set; } // optional, can be null
-
+        public User? Manager { get; set; }
     }
 }
