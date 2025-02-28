@@ -71,7 +71,7 @@ internal static class TheatersHelpers
         var resultDto = await httpResponse.Content.ReadAsJsonAsync<TheaterDto>();
         Assert.IsNotNull(resultDto, "We expect json data when calling POST /api/theaters");
 
-        resultDto.Id.Should().BeGreaterOrEqualTo(1, "we expect a newly created theater to return with a positive Id");
+        resultDto.Id.Should().BeGreaterThanOrEqualTo(1, "we expect a newly created theater to return with a positive Id");
         resultDto.Should().BeEquivalentTo(request, x => x.Excluding(y => y.Id), "We expect the create theater endpoint to return the result");
 
         httpResponse.Headers.Location.Should().NotBeNull("we expect the 'location' header to be set as part of a HTTP 201");

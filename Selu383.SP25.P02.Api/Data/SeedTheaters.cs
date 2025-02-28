@@ -1,47 +1,44 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Selu383.SP25.P02.Api.Data;
 using Selu383.SP25.P02.Api.Features.Theaters;
+using Selu383.SP25.P02.Api.Features.Users;
 
 namespace Selu383.SP25.P02.Api.Data
 {
     public static class SeedTheaters
     {
-        public static void Initialize(IServiceProvider serviceProvider)
+        public static void Initialize(IServiceProvider services)
         {
-            using (var context = new DataContext(serviceProvider.GetRequiredService<DbContextOptions<DataContext>>()))
+            using var scope = services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<DataContext>();
+            if (context.Theaters.Any())
             {
-                // Look for any theaters.
-                if (context.Theaters.Any())
-                {
-                    return;   // DB has been seeded
-                }
-                context.Theaters.AddRange(
-                    new Theater
-                    {
-                        Name = "AMC Palace 10",
-                        Address = "123 Main St, Springfield",
-                        SeatCount = 150
-                    },
-                    new Theater
-                    {
-                        Name = "Regal Cinema",
-                        Address = "456 Elm St, Shelbyville",
-                        SeatCount = 200
-                    },
-                    new Theater
-                    {
-                        Name = "Grand Theater",
-                        Address = "789 Broadway Ave, Metropolis",
-                        SeatCount = 300
-                    },
-                    new Theater
-                    {
-                        Name = "Vintage Drive-In",
-                        Address = "101 Retro Rd, Smallville",
-                        SeatCount = 75
-                    }
-                );
-                context.SaveChanges();
+                return;
             }
+            var admin = context.Users.FirstOrDefault(u => u.UserName == "galkadi");
+            var t1 = new Theater
+            {
+                Name = "Theater One",
+                Address = "123 Main Street",
+                SeatCount = 100,
+                Manager = admin
+            };
+            var t2 = new Theater
+            {
+                Name = "Theater Two",
+                Address = "456 Oak Avenue",
+                SeatCount = 200,
+                Manager = admin
+            };
+            var t3 = new Theater
+            {
+                Name = "Theater Three",
+                Address = "789 Elm Road",
+                SeatCount = 300,
+                Manager = admin
+            };
+            context.Theaters.AddRange(t1, t2, t3);
+            context.SaveChanges();
         }
     }
 }
